@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflectance Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .select-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .select-group {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Reflectance Viewer</h1>
+    
+    <div class="select-container">
+        <div class="select-group">
+            <label for="dye">염료:</label>
+            <select id="dye">
+                <option value="치자">치자</option>
+            </select>
+        </div>
+        <div class="select-group">
+            <label for="base-material">바탕재:</label>
+            <select id="base-material">
+                <option value="all">전체</option>
+            </select>
+        </div>
+    </div>
+
+    <label for="code">코드:</label>
+    <select id="code"></select>
+
+    <div id="data-display">
+        <canvas id="reflectance-chart"></canvas>
+    </div>
+
+    <script>
+    const baseMaterialCode = {
+        "U": "생명주", "S": "익명주", "R": "모시", "H": "삼베",
+        "C": "무명", "P": "한지", "X": "염료"
+    };
+
+    const wavelengths = [360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750];
+
+    const dyeSelect = document.getElementById('dye');
+    const baseMaterialSelect = document.getElementById('base-material');
+    const codeSelect = document.getElementById('code');
+    let chart;
+
+    dyeSelect.addEventListener('change', updateBaseMaterials);
+    baseMaterialSelect.addEventListener('change', updateCodes);
+    codeSelect.addEventListener('change', displayData);
+
+    function updateBaseMaterials() {
+        const selectedDye = dyeSelect.value;
+        baseMaterialSelect.innerHTML = '<option value="all">전체</option>';
+        Object.entries(baseMaterialCode).forEach(([code, name]) => {
+            if (code !== 'X') {
+                baseMaterialSelect.innerHTML += `<option value="${code}">${name}</option>`;
+            }
+        });
+        updateCodes();
+    }
+
+    async function updateCodes() {
+        const selectedDye = dyeSelect.value;
+        const selectedBaseMaterial = baseMaterialSelect.value;
+
+        try {
+            const response = await fetch(`data/data12/list_of_codes.txt`);
+            const text = await response.text();
+            const codes = text.split('\n').filter(code => code.trim() !== '');
+
+            codeSelect.innerHTML = '';
+            codes.forEach(code => {
+                if (selectedBaseMaterial === 'all' || code.startsWith(selectedBaseMaterial)) {
+                    codeSelect.innerHTML += `<option value="${code}">${code}</option>`;
+                }
+            });
+
+            displayData();
+        } catch (error) {
+            console.error('Error loading codes:', error);
+            alert('Error loading codes. Please check your local server setup.');
+        }
+    }
+
+    async function displayData() {
+        const selectedCode = codeSelect.value;
+
+        try {
+            const response = await fetch(`data/data12/${selectedCode}.json`);
+            const data = await response.json();
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('reflectance-chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: wavelengths,
+                    datasets: [{
+                        label: '반사율',
+                        data: data.reflectance[0],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,  // 애니메이션 비활성화
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: data.name
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '파장 (nm)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '반사율 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading data:', error);
+            alert('Error loading data. Please check your local server setup and file paths.');
+        }
+    }
+
+    // 초기 데이터 로드
+    updateBaseMaterials();
+    </script>
+</body>
+</html>
