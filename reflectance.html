@@ -105,24 +105,32 @@
             }
 
             const ctx = document.getElementById('reflectance-chart').getContext('2d');
+            const datasets = data.reflectance.map((reflectance, index) => ({
+                label: `반사율 ${index + 1}`,
+                data: reflectance,
+                borderColor: `rgba(75, 192, 192, ${index === 0 ? 1 : 0.3})`,
+                backgroundColor: `rgba(75, 192, 192, ${index === 0 ? 0.5 : 0.1})`,
+                tension: 0.1,
+                pointRadius: index === 0 ? 3 : 0,
+                borderWidth: index === 0 ? 2 : 1
+            }));
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: wavelengths,
-                    datasets: [{
-                        label: '반사율',
-                        data: data.reflectance[0],
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
-                    animation: false,  // 애니메이션 비활성화
+                    animation: false,
                     plugins: {
                         title: {
                             display: true,
                             text: data.name
+                        },
+                        legend: {
+                            display: false
                         }
                     },
                     scales: {
