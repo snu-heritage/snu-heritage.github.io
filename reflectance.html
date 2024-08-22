@@ -42,6 +42,7 @@
         <canvas id="reflectance-chart"></canvas>
     </div>
 
+    <div id="color-info"></div>
     <script>
     const baseMaterialCode = {
         "U": "생명주", "S": "익명주", "R": "모시", "H": "삼베",
@@ -165,6 +166,9 @@
                     }
                 }
             });
+            const colorInfo = document.getElementById('color-info');
+            const [L, a, b] = data.lab;
+            colorInfo.innerHTML = `<span style="color: ${data.rgb}; font-size:50px;">■</span> L: ${L.toFixed(2)}, a: ${a.toFixed(2)}, b: ${b.toFixed(2)}`;
         } catch (error) {
             console.error('Error loading data:', error);
             alert('Error loading data. Please check your local server setup and file paths.');
