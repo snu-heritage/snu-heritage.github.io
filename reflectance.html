@@ -105,15 +105,31 @@
             }
 
             const ctx = document.getElementById('reflectance-chart').getContext('2d');
+
             const datasets = data.reflectance.map((reflectance, index) => ({
                 label: `반사율 ${index + 1}`,
                 data: reflectance,
-                borderColor: `rgba(75, 192, 192, ${index === 0 ? 1 : 0.3})`,
-                backgroundColor: `rgba(75, 192, 192, ${index === 0 ? 0.5 : 0.1})`,
+                borderColor: `rgba(75, 192, 192, 0.3)`,
+                backgroundColor: `rgba(75, 192, 192, 0.1)`,
                 tension: 0.1,
-                pointRadius: index === 0 ? 3 : 0,
-                borderWidth: index === 0 ? 2 : 1
+                pointRadius: 0,
+                borderWidth: 1
             }));
+
+            const avgReflectance = wavelengths.map((_, i) => {
+                const sum = data.reflectance.reduce((acc, curr) => acc + curr[i], 0);
+                return sum / data.reflectance.length;
+            });
+
+            datasets.push({
+                label: '평균 반사율',
+                data: avgReflectance,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.3)',
+                tension: 0.1,
+                pointRadius: 3,
+                borderWidth: 2
+            });
 
             chart = new Chart(ctx, {
                 type: 'line',
@@ -155,7 +171,6 @@
         }
     }
 
-    // 초기 데이터 로드
     updateBaseMaterials();
     </script>
 </body>
