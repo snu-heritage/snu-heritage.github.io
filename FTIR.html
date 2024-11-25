@@ -40,7 +40,7 @@
 <body>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <h1>FT-IR Viewer</h1>
-        <a href="reflectance.html" style="text-decoration: none;">← 반사도 데이터 보기</a>
+        <a href="reflectance.html" style="text-decoration: none;">← 가시광선 반사율 데이터 보기</a>
     </div>
     
     <div class="select-container">
@@ -224,7 +224,7 @@
             displayData();
         } catch (error) {
             console.error('Error loading codes:', error);
-            alert('해당 자료를 찾을 수 없습니다.');
+            alert('해당 조합의 데이터를 찾을 수 없습니다. 다른 조합을 시도하세요.');
         }
     }
 
@@ -359,7 +359,7 @@
             });
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            alert('해당 조합의 데이터를 찾을 수 없습니다. 다른 조합을 시도하세요.');
         } finally {
             // 로딩 표시 종료
             document.getElementById('loading').style.display = 'none';
