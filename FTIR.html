@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FTIR Viewer</title>
+    <title>Reflectance Viewer</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -18,19 +18,59 @@
     </style>
 </head>
 <body>
-    <h1>FTIR Viewer</h1>
+    <h1>FT-IR Viewer</h1>
     
     <div class="select-container">
         <div class="select-group">
             <label for="dye">염료:</label>
             <select id="dye">
+                <option value="괴화">괴화</option>
                 <option value="치자">치자</option>
+                <option value="울금">울금</option>
+                <option value="조개풀">조개풀</option>
+                <option value="황벽">황벽</option>
+                <option value="황련">황련</option>
+                <option value="대황">대황</option>
+                <option value="양파">양파</option>
+                <option value="메리골드/금전화">메리골드/금전화</option>
+                <option value="홍화">홍화</option>
+                <option value="소목">소목</option>
+                <option value="꼭두서니">꼭두서니</option>
+                <option value="자초">자초</option>
+                <option value="호장근">호장근</option>
+                <option value="청대">청대</option>
+                <option value="생쪽">생쪽</option>
+                <option value="발효쪽">발효쪽</option>
+                <option value="물푸레나무">물푸레나무</option>
+                <option value="연자각">연자각</option>
+                <option value="적송피">적송피</option>
+                <option value="호도청피">호도청피</option>
+                <option value="노상목">노상목</option>
+                <option value="밤송이">밤송이</option>
+                <option value="도토리깍지">도토리깍지</option>
+                <option value="감물">감물</option>
+                <option value="녹차">녹차</option>
+                <option value="오배자">오배자</option>
+                <option value="석류피">석류피</option>
+                <option value="신나무">신나무</option>
+                <option value="가래나무">가래나무</option>
             </select>
         </div>
         <div class="select-group">
             <label for="base-material">바탕재:</label>
             <select id="base-material">
                 <option value="all">전체</option>
+            </select>
+        </div>
+        <div class="select-group">
+            <label for="mordant">매염제:</label>
+            <select id="mordant">
+                <option value="all">전체</option>
+                <option value="C">무매염</option>
+                <option value="Al">Al</option>
+                <option value="Cu">Cu</option>
+                <option value="Fe">Fe</option>
+                <option value="K">K</option>
             </select>
         </div>
     </div>
@@ -42,21 +82,25 @@
         <canvas id="ftir-chart"></canvas>
     </div>
 
-    <div id="specimen-info"></div>
+    <div id="color-info"></div>
     <script>
     const baseMaterialCode = {
         "U": "생명주", "S": "익명주", "R": "모시", "H": "삼베",
         "C": "무명", "P": "한지", "X": "염료"
     };
 
+    const wavelengths = [360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750];
+
     const dyeSelect = document.getElementById('dye');
     const baseMaterialSelect = document.getElementById('base-material');
     const codeSelect = document.getElementById('code');
+    const mordantSelect = document.getElementById('mordant');
     let chart;
 
     dyeSelect.addEventListener('change', updateBaseMaterials);
     baseMaterialSelect.addEventListener('change', updateCodes);
     codeSelect.addEventListener('change', displayData);
+    mordantSelect.addEventListener('change', updateCodes);
 
     function updateBaseMaterials() {
         const selectedDye = dyeSelect.value;
@@ -72,15 +116,40 @@
     async function updateCodes() {
         const selectedDye = dyeSelect.value;
         const selectedBaseMaterial = baseMaterialSelect.value;
+        const selectedMordant = mordantSelect.value;
 
         try {
-            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR_list`);
+            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR_list`, {
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
             const text = await response.text();
             const codes = text.split('\n').filter(code => code.trim() !== '');
 
+            const dyeCodeMap = {
+                "괴화": "11", "치자": "12", "울금": "13", "조개풀": "14", "황벽": "15", 
+                "황련": "16", "대황": "17", "양파": "18", "메리골드/금전화": "19",
+                "홍화": "21", "소목": "22", "꼭두서니": "23", "자초": "24", "호장근": "25",
+                "청대": "31", "생쪽": "32", "발효쪽": "33", "물푸레나무": "34",
+                "연자각": "41", "적송피": "42", "호도청피": "43", "노상목": "44", 
+                "밤송이": "45", "도토리깍지": "46", "감물": "47", "녹차": "48",
+                "오배자": "51", "석류피": "52", "신나무": "53", "가래나무": "54"
+            };
+
             codeSelect.innerHTML = '';
             codes.forEach(code => {
-                if (selectedBaseMaterial === 'all' || code.startsWith(selectedBaseMaterial)) {
+                const dyeCode = code.split('-')[1].substring(0, 2);
+                const baseMaterialCode = code.charAt(0);
+                const mordantCode = code.split('-')[2];
+                
+                const matchesDye = dyeCodeMap[selectedDye] === dyeCode;
+                const matchesBaseMaterial = selectedBaseMaterial === 'all' || selectedBaseMaterial === baseMaterialCode;
+                const matchesMordant = selectedMordant === 'all' || selectedMordant === mordantCode;
+
+                if (matchesDye && matchesBaseMaterial && matchesMordant) {
                     codeSelect.innerHTML += `<option value="${code}">${code}</option>`;
                 }
             });
@@ -88,7 +157,7 @@
             displayData();
         } catch (error) {
             console.error('Error loading codes:', error);
-            alert('코드 목록을 불러오는 중 오류가 발생했습니다.');
+            alert('해당 자료를 찾을 수 없습니다.');
         }
     }
 
@@ -96,7 +165,13 @@
         const selectedCode = codeSelect.value;
 
         try {
-            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR/${selectedCode}`);
+            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR/${selectedCode}`, {
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
             const data = await response.json();
 
             if (chart) {
@@ -126,6 +201,9 @@
                         title: {
                             display: true,
                             text: data.name
+                        },
+                        legend: {
+                            display: false
                         }
                     },
                     scales: {
@@ -145,20 +223,9 @@
                     }
                 }
             });
-
-            const specimenInfo = document.getElementById('specimen-info');
-            specimenInfo.innerHTML = `
-                <h3>시료 정보</h3>
-                <p>이름: ${data.name}</p>
-                <p>바탕재: ${data.base_material}</p>
-                <p>염료: ${data.dye}</p>
-                <p>매염제: ${data.mordant}</p>
-                <p>열화 시간: ${data.hour}시간</p>
-                <p>열화 여부: ${data.degradation ? "O" : "X"}</p>
-            `;
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            alert('이 조합의 데이터를 찾을 수 없습니다. 다른 조합을 선택해보세요.');
         }
     }
 
