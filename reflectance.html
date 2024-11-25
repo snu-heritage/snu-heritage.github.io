@@ -76,7 +76,13 @@
         const selectedBaseMaterial = baseMaterialSelect.value;
 
         try {
-            const response = await fetch(`https://junoweb.gabia.io/heritage/reflectance_list`);
+            const response = await fetch(`https://junoweb.gabia.io/heritage/reflectance_list`, {
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
             console.log(response);
             const text = await response.text();
             const codes = text.split('\n').filter(code => code.trim() !== '');
@@ -99,7 +105,13 @@
         const selectedCode = codeSelect.value;
 
         try {
-            const response = await fetch(`https://junoweb.gabia.io/heritage/reflectance/${selectedCode}`);
+            const response = await fetch(`https://junoweb.gabia.io/heritage/reflectance/${selectedCode}`, {
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
             const data = await response.json();
 
             if (chart) {
