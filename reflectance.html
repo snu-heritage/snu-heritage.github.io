@@ -24,7 +24,36 @@
         <div class="select-group">
             <label for="dye">염료:</label>
             <select id="dye">
+                <option value="괴화">괴화</option>
                 <option value="치자">치자</option>
+                <option value="울금">울금</option>
+                <option value="조개풀">조개풀</option>
+                <option value="황벽">황벽</option>
+                <option value="황련">황련</option>
+                <option value="대황">대황</option>
+                <option value="양파">양파</option>
+                <option value="메리골드/금전화">메리골드/금전화</option>
+                <option value="홍화">홍화</option>
+                <option value="소목">소목</option>
+                <option value="꼭두서니">꼭두서니</option>
+                <option value="자초">자초</option>
+                <option value="호장근">호장근</option>
+                <option value="청대">청대</option>
+                <option value="생쪽">생쪽</option>
+                <option value="발효쪽">발효쪽</option>
+                <option value="물푸레나무">물푸레나무</option>
+                <option value="연자각">연자각</option>
+                <option value="적송피">적송피</option>
+                <option value="호도청피">호도청피</option>
+                <option value="노상목">노상목</option>
+                <option value="밤송이">밤송이</option>
+                <option value="도토리깍지">도토리깍지</option>
+                <option value="감물">감물</option>
+                <option value="녹차">녹차</option>
+                <option value="오배자">오배자</option>
+                <option value="석류피">석류피</option>
+                <option value="신나무">신나무</option>
+                <option value="가래나무">가래나무</option>
             </select>
         </div>
         <div class="select-group">
@@ -83,13 +112,28 @@
                     'Content-Type': 'application/json'
                 }
             });
-            console.log(response);
             const text = await response.text();
             const codes = text.split('\n').filter(code => code.trim() !== '');
 
+            const dyeCodeMap = {
+                "괴화": "11", "치자": "12", "울금": "13", "조개풀": "14", "황벽": "15", 
+                "황련": "16", "대황": "17", "양파": "18", "메리골드/금전화": "19",
+                "홍화": "21", "소목": "22", "꼭두서니": "23", "자초": "24", "호장근": "25",
+                "청대": "31", "생쪽": "32", "발효쪽": "33", "물푸레나무": "34",
+                "연자각": "41", "적송피": "42", "호도청피": "43", "노상목": "44", 
+                "밤송이": "45", "도토리깍지": "46", "감물": "47", "녹차": "48",
+                "오배자": "51", "석류피": "52", "신나무": "53", "가래나무": "54"
+            };
+
             codeSelect.innerHTML = '';
             codes.forEach(code => {
-                if (selectedBaseMaterial === 'all' || code.startsWith(selectedBaseMaterial)) {
+                const dyeCode = code.split('-')[1].substring(0, 2);
+                const baseMaterialCode = code.charAt(0);
+                
+                const matchesDye = dyeCodeMap[selectedDye] === dyeCode;
+                const matchesBaseMaterial = selectedBaseMaterial === 'all' || selectedBaseMaterial === baseMaterialCode;
+
+                if (matchesDye && matchesBaseMaterial) {
                     codeSelect.innerHTML += `<option value="${code}">${code}</option>`;
                 }
             });
