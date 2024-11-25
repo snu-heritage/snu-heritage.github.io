@@ -35,9 +35,28 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .initial-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
+    <div id="initial-loading" class="initial-loading">
+        <div class="loading-container" style="display: block;">
+            <div class="loading-spinner"></div>
+            <p>염료 목록을 불러오는 중...</p>
+        </div>
+    </div>
+    
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <h1>SERS Viewer</h1>
         <div style="display: flex; gap: 20px;">
@@ -69,7 +88,7 @@
                 <option value="발효쪽">발효쪽</option>
                 <option value="물푸레나무">물푸레나무</option>
                 <option value="연자각">연자각</option>
-                <option value="적송피">적송피</option>
+                <option value="적송피">적송���</option>
                 <option value="호도청피">호도청피</option>
                 <option value="노상목">노상목</option>
                 <option value="밤송이">밤송이</option>
@@ -138,6 +157,11 @@
                     'Content-Type': 'application/json'
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error('서버 응답 오류');
+            }
+
             const text = await response.text();
             const codes = text.split('\n').filter(code => code.trim() !== '');
 
@@ -154,13 +178,22 @@
                 }
             });
 
+            await updateCodes();
+            
+            const initialLoading = document.getElementById('initial-loading');
+            initialLoading.style.display = 'none';
+
         } catch (error) {
             console.error('염료 목록을 불러오는 중 오류가 발생했습니다:', error);
+            const initialLoading = document.getElementById('initial-loading');
+            const loadingContainer = initialLoading.querySelector('.loading-container');
+            loadingContainer.innerHTML = `
+                <p style="color: red;">데이터를 불러오는데 실패했습니다.<br>페이지를 새로고침 해주세요.</p>
+                <button onclick="location.reload()" style="margin-top: 10px;">새로고침</button>
+            `;
         }
     }
 
-    initializeDyeOptions();
-    
     const baseMaterialCode = {
         "U": "생명주", "S": "익명주", "R": "모시", "H": "삼베",
         "C": "무명", "P": "한지", "X": "염료"
@@ -336,7 +369,9 @@
         }
     }
 
-    updateBaseMaterials();
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeDyeOptions();
+    });
     </script>
 </body>
 </html>
