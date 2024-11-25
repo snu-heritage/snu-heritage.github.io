@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTIR Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .select-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .select-group {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>FTIR Viewer</h1>
+    
+    <div class="select-container">
+        <div class="select-group">
+            <label for="dye">염료:</label>
+            <select id="dye">
+                <option value="치자">치자</option>
+            </select>
+        </div>
+        <div class="select-group">
+            <label for="base-material">바탕재:</label>
+            <select id="base-material">
+                <option value="all">전체</option>
+            </select>
+        </div>
+    </div>
+
+    <label for="code">코드:</label>
+    <select id="code"></select>
+
+    <div id="data-display">
+        <canvas id="ftir-chart"></canvas>
+    </div>
+
+    <div id="specimen-info"></div>
+    <script>
+    const baseMaterialCode = {
+        "U": "생명주", "S": "익명주", "R": "모시", "H": "삼베",
+        "C": "무명", "P": "한지", "X": "염료"
+    };
+
+    const dyeSelect = document.getElementById('dye');
+    const baseMaterialSelect = document.getElementById('base-material');
+    const codeSelect = document.getElementById('code');
+    let chart;
+
+    dyeSelect.addEventListener('change', updateBaseMaterials);
+    baseMaterialSelect.addEventListener('change', updateCodes);
+    codeSelect.addEventListener('change', displayData);
+
+    function updateBaseMaterials() {
+        const selectedDye = dyeSelect.value;
+        baseMaterialSelect.innerHTML = '<option value="all">전체</option>';
+        Object.entries(baseMaterialCode).forEach(([code, name]) => {
+            if (code !== 'X') {
+                baseMaterialSelect.innerHTML += `<option value="${code}">${name}</option>`;
+            }
+        });
+        updateCodes();
+    }
+
+    async function updateCodes() {
+        const selectedDye = dyeSelect.value;
+        const selectedBaseMaterial = baseMaterialSelect.value;
+
+        try {
+            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR_list`);
+            const text = await response.text();
+            const codes = text.split('\n').filter(code => code.trim() !== '');
+
+            codeSelect.innerHTML = '';
+            codes.forEach(code => {
+                if (selectedBaseMaterial === 'all' || code.startsWith(selectedBaseMaterial)) {
+                    codeSelect.innerHTML += `<option value="${code}">${code}</option>`;
+                }
+            });
+
+            displayData();
+        } catch (error) {
+            console.error('Error loading codes:', error);
+            alert('코드 목록을 불러오는 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function displayData() {
+        const selectedCode = codeSelect.value;
+
+        try {
+            const response = await fetch(`https://junoweb.gabia.io/heritage/FTIR/${selectedCode}`);
+            const data = await response.json();
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('ftir-chart').getContext('2d');
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.wavenumbers,
+                    datasets: [{
+                        label: 'FTIR',
+                        data: data.ftir,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.3)',
+                        tension: 0.1,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: data.name
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Wavenumber (cm⁻¹)'
+                            },
+                            reverse: true
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Absorbance'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const specimenInfo = document.getElementById('specimen-info');
+            specimenInfo.innerHTML = `
+                <h3>시료 정보</h3>
+                <p>이름: ${data.name}</p>
+                <p>바탕재: ${data.base_material}</p>
+                <p>염료: ${data.dye}</p>
+                <p>매염제: ${data.mordant}</p>
+                <p>열화 시간: ${data.hour}시간</p>
+                <p>열화 여부: ${data.degradation ? "O" : "X"}</p>
+            `;
+        } catch (error) {
+            console.error('Error loading data:', error);
+            alert('데이터를 불러오는 중 오류가 발생했습니다.');
+        }
+    }
+
+    updateBaseMaterials();
+    </script>
+</body>
+</html>
