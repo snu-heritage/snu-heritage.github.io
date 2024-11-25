@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reflectance Viewer</title>
+    <title>FT-IR Viewer</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -18,7 +18,10 @@
     </style>
 </head>
 <body>
-    <h1>FT-IR Viewer</h1>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <h1>FT-IR Viewer</h1>
+        <a href="reflectance.html" style="text-decoration: none;">← 반사도 데이터 보기</a>
+    </div>
     
     <div class="select-container">
         <div class="select-group">
@@ -115,15 +118,10 @@
             const text = await response.text();
             const codes = text.split('\n').filter(code => code.trim() !== '');
 
-            // 존재하는 염료 코드 추출
             const existingDyeCodes = new Set(
                 codes.map(code => code.split('-')[1].substring(0, 2))
             );
-
-            // 드롭다운 메뉴의 모든 옵션 가져오기
             const options = Array.from(dyeSelect.options);
-            
-            // 존재하지 않는 염료 옵션 제거
             options.forEach(option => {
                 const dyeCode = dyeCodeMap[option.value];
                 if (!existingDyeCodes.has(dyeCode)) {
@@ -209,6 +207,27 @@
     const showAgingDataCheckbox = document.getElementById('showAgingData');
     showAgingDataCheckbox.addEventListener('change', displayData);
 
+    function getDisplayName(code) {
+        const parts = code.split('-');
+        const baseMaterial = baseMaterialCode[parts[0]];
+        const dyeName = dyeSelect.value;
+        const mordant = parts[2] === 'C' ? '무매염' : parts[2];
+        
+        if (parts[3] === 'B') {
+            return `${baseMaterial}-${dyeName}-${mordant} (열화전/Control)`;
+        }
+        if (parts.length >= 4) {
+            const degradationType = parts[3].charAt(0);
+            const hours = parts[3].substring(1);
+            
+            const degradationName = degradationType === 'U' ? '광열화' : 
+                                  degradationType === 'H' ? '습식열화' : '건식열화';
+            return `${baseMaterial}-${dyeName}-${mordant} (${degradationName} ${hours}h)`;
+        }
+        
+        return `${baseMaterial}-${dyeName}-${mordant}`;
+    }
+
     async function displayData() {
         const selectedCode = codeSelect.value;
         const showAgingData = showAgingDataCheckbox.checked;
@@ -232,19 +251,18 @@
 
             function getTimeBasedColor(timeCode) {
                 if (timeCode === 'B') {
-                    return 'rgb(0, 162, 237)';  // 진한 하늘색으로 시작
+                    return 'rgb(0, 132, 207)'; 
                 }
                 
-                // 시간별 색상 매핑 (시간이 지날수록 연해짐)
                 const colorMap = {
-                    '24': 'rgb(51, 181, 229)',   
-                    '48': 'rgb(102, 200, 221)',   
-                    '72': 'rgb(153, 219, 213)',   
-                    '144': 'rgb(179, 229, 209)',  
-                    '288': 'rgb(204, 239, 205)'   
+                    '24': 'rgb(41, 151, 199)',   
+                    '48': 'rgb(82, 170, 191)',   
+                    '72': 'rgb(123, 189, 183)',   
+                    '144': 'rgb(149, 199, 179)',  
+                    '288': 'rgb(174, 209, 175)'   
                 };
                 
-                return colorMap[timeCode] || 'rgb(0, 162, 237)';  // 기본값
+                return colorMap[timeCode] || 'rgb(0, 132, 207)';  // 기본값
             }
 
             const datasets = await Promise.all(codesToDisplay.map(async (code) => {
@@ -277,7 +295,10 @@
                 type: 'line',
                 data: {
                     labels: datasets[0].data.map((_, i) => i),
-                    datasets: datasets
+                    datasets: datasets.map(dataset => ({
+                        ...dataset,
+                        label: getDisplayName(dataset.label)
+                    }))
                 },
                 options: {
                     responsive: true,
@@ -285,7 +306,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: selectedCode
+                            text: getDisplayName(selectedCode)
                         },
                         legend: {
                             display: showAgingData
